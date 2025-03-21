@@ -1,150 +1,188 @@
-import React, { useRef ,useMemo} from 'react';
-import { View, Text, StyleSheet,Button, Image, TouchableOpacity, FlatList } from 'react-native';
-import { useSelector } from 'react-redux'; // Redux'tan veri almak için useSelector
-import { RootState } from '../redux/store'; // Redux store tipi
+import React, { useRef, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useSelector } from 'react-redux';
+import { RootState } from '../redux/store';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const CycleScreen = () => {
-  const profile = useSelector((state: RootState) => state.profile.data); 
-
+  const profile = useSelector((state: RootState) => state.profile.data);
+  const insights = useSelector((state: RootState) => state.insights.data?.insights || []);
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   });
+
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '100%'], []);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const snapPoints = useMemo(() => ['25%', '50%', '68%'], []);
 
-
-  const cycleDays = 28; // Döngüdeki toplam gün sayısı
-  const bleedingDays = [1, 2, 3, 4]; // Kanama günleri
-  const fertilityDays = [12, 13, 14, 15]; // Doğurganlık günleri
-  const ovulationDay = 14; // Ovulasyon günü
-
+  const cycleDays = 28;
+  const bleedingDays = [1, 2, 3, 4];
+  const fertilityDays = [12, 13, 14, 15];
+  const ovulationDay = 14;
+  
   const renderDots = () => {
     const dots = [];
-    const radius = 120; // Yayın yarıçapı
-    const centerX = 150; // Yayın merkezi X
-    const centerY = 150; // Yayın merkezi Y
-    const angleStep = (360 / cycleDays); // Her nokta arasındaki açı
-
+    const radius = 120; // Arc radius
+    const centerX = 150; // Arc center X
+    const centerY = isBottomSheetOpen ? 140 : 150; // Arc center Y, BottomSheet açıkken yukarı kaydır
+    
+    const angleStep = 180 / (cycleDays / 2); // Half arc, so we divide by half of the total days
+    const arcStartAngle = 180; // Start angle for half arc (bottom half)
+  
     for (let i = 0; i < cycleDays; i++) {
-      const angle = i * angleStep;
+      // Adjust angle to fit the bottom half of the circle
+      const angle = arcStartAngle + (i * angleStep);
       const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
       const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
-
-      let backgroundColor = '#ccc'; // Varsayılan gri renk
-      if (bleedingDays.includes(i + 1)) {
-        backgroundColor = '#f7957b'; // Kanama günleri için turuncu
-      } else if (fertilityDays.includes(i + 1)) {
-        backgroundColor = '#a8e6cf'; // Doğurganlık günleri için açık yeşil
+  
+      let backgroundColor = '#ccc'; // Default gray color
+      let size = isBottomSheetOpen ? 10 : 20; // Default dot size
+  
+      if (!isBottomSheetOpen) {
+        if (bleedingDays.includes(i + 1)) {
+          backgroundColor = '#f7957b';
+        } else if (i + 1 === ovulationDay) {
+          backgroundColor = '#388e3c';
+        }
+        size = 20;
+      } else {
+        if (bleedingDays.includes(i + 1)) {
+          backgroundColor = '#f7957b';
+          size = 35;
+        } else if (fertilityDays.includes(i + 1)) {
+          backgroundColor = '#a8e6cf';
+          size = 35;
+        }
+        if (i + 1 === ovulationDay) {
+          backgroundColor = '#388e3c';
+          size = 35;
+        }
       }
-      if (i + 1 === ovulationDay) {
-        backgroundColor = '#388e3c'; // Ovulasyon günü için koyu yeşil
+  
+      const isDotVisible =
+        !isBottomSheetOpen || bleedingDays.includes(i + 1) || i + 1 === ovulationDay || fertilityDays.includes(i + 1);
+  
+      if (isDotVisible) {
+        dots.push(
+          <View
+            key={i}
+            style={[styles.dot, { 
+              backgroundColor, 
+              left: x - size / 2, 
+              top: y - size / 2, 
+              width: size, 
+              height: size,
+              borderRadius: size / 2 
+            }]}
+          />
+        );
       }
-
-      dots.push(
-        <View
-          key={i}
-          style={[
-            styles.dot,
-            {
-              backgroundColor,
-              left: x - 10,
-              top: y - 10,
-            },
-          ]}
-        />
-      );
     }
-
+  
     return dots;
   };
-
+  
+  const handleBottomSheetChange = (index: number) => {
+    if (index > 0) {
+      setIsBottomSheetOpen(true); 
+    } else {
+      setIsBottomSheetOpen(false); 
+    }
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <View style={styles.container}>
-      {/* Mevcut gün */}
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>{currentDate}</Text>
-      </View>
+      <View style={styles.container}>
+        {/* Current date */}
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>{currentDate}</Text>
+        </View>
 
-      {/* Yay görüntüsü */}
-      <View style={styles.arcContainer}>
-        <Image
-          source={require('../../assets/images/arc.png')}
-          style={styles.arcImage}
-        />
-        {renderDots()}
-      </View>
+        {/* Arc or Main Circle image */}
+        <View style={[styles.arcContainer, isBottomSheetOpen && { top: 100 }]}>
+  <Image
+    source={require('../../assets/images/arc.png')}
+    style={styles.arcImage}
+  />
+  {renderDots()}
+</View>
 
-      {/* Sol üst köşede ilk harf */}
-      <View style={styles.initialCircle}>
-        <Text style={styles.initialText}>
-          {profile?.profileInfo?.firstName?.charAt(0).toUpperCase()}
-        </Text>
-      </View>
 
-      {/* Sağ üst köşede bildirim butonu */}
-      <TouchableOpacity style={styles.notificationButton}>
-        <Image
-          source={require('../../assets/images/bell-02-orange.png')}
-          style={styles.notificationImage}
-        />
-      </TouchableOpacity>
- {/* Bottom Sheet */}
- <BottomSheet
+
+        {/* Initial Circle (First letter of profile name) */}
+        <View style={styles.initialCircle}>
+          <Text style={styles.initialText}>
+            {profile?.profileInfo?.firstName?.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+
+        {/* Notification Button */}
+        <TouchableOpacity style={styles.notificationButton}>
+          <Image
+            source={require('../../assets/images/bell-02-orange.png')}
+            style={styles.notificationImage}
+          />
+        </TouchableOpacity>
+
+        {/* Bottom Sheet */}
+        <BottomSheet
           ref={bottomSheetRef}
-          index={1}
+          index={0} // Initially closed
           snapPoints={snapPoints}
           animateOnMount={true}
           enableDynamicSizing={false}
+          onChange={handleBottomSheetChange}
         >
           <View style={styles.contentContainer}>
-            <Text>Bottom Sheet Content</Text>
+            <Text style={styles.bottomSheetTitle}>Insights</Text>
+            {insights && insights.length > 0 ? (
+              insights.map((insight) => (
+                <View key={insight._id} style={styles.insightItem}>
+                  <Text style={styles.insightTitle}>{insight.title}</Text>
+                  <Text style={styles.insightText}>{insight.content}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.insightText}>No insights available.</Text>
+            )}
           </View>
         </BottomSheet>
 
-<View style={styles.bottomBar}>
-  {/* Döngü Butonu (Seçili) */}
-  <TouchableOpacity style={styles.bottomBarButton}>
-    <Image
-      source={require('../../assets/images/icon1.png')}
-      style={[styles.icon, { tintColor: '#f7957b' }]} // Seçili renk
-    />
-    <Text style={[styles.bottomBarText, { color: '#000' }]}>Döngü</Text> {/* Yazı rengi siyah */}
-  </TouchableOpacity>
-
-  {/* Takvim Butonu */}
-  <TouchableOpacity style={styles.bottomBarButton}>
-    <Image
-      source={require('../../assets/images/icon2.png')}
-      style={[styles.icon, { tintColor: '#ccc' }]} // Varsayılan renk
-    />
-    <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Takvim</Text>
-  </TouchableOpacity>
-
-  {/* Analiz Butonu */}
-  <TouchableOpacity style={styles.bottomBarButton}>
-    <Image
-      source={require('../../assets/images/icon3.png')}
-      style={[styles.icon, { tintColor: '#ccc' }]} // Varsayılan renk
-    />
-    <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Analiz</Text>
-  </TouchableOpacity>
-
-  {/* Rehber Butonu */}
-  <TouchableOpacity style={styles.bottomBarButton}>
-    <Image
-      source={require('../../assets/images/icon4.png')}
-      style={[styles.icon, { tintColor: '#ccc' }]} // Varsayılan renk
-    />
-    <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Rehber</Text>
-  </TouchableOpacity>
-</View>
-    </View>
+        {/* Bottom Bar with Buttons */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.bottomBarButton}>
+            <Image
+              source={require('../../assets/images/icon1.png')}
+              style={[styles.icon, { tintColor: '#f7957b' }]}
+            />
+            <Text style={[styles.bottomBarText, { color: '#000' }]}>Döngü</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomBarButton}>
+            <Image
+              source={require('../../assets/images/icon2.png')}
+              style={[styles.icon, { tintColor: '#ccc' }]}
+            />
+            <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Takvim</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomBarButton}>
+            <Image
+              source={require('../../assets/images/icon3.png')}
+              style={[styles.icon, { tintColor: '#ccc' }]}
+            />
+            <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Analiz</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bottomBarButton}>
+            <Image
+              source={require('../../assets/images/icon4.png')}
+              style={[styles.icon, { tintColor: '#ccc' }]}
+            />
+            <Text style={[styles.bottomBarText, { color: '#ccc' }]}>Rehber</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -181,7 +219,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 24,
     height: 24,
-    tintColor: '#f7957b', // İkon rengini ayarlayabilirsin
+    tintColor: '#f7957b',
   },
   bottomBarText: {
     fontSize: 12,
@@ -194,12 +232,14 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   arcContainer: {
-    position: 'relative',
+    position: 'absolute',
+    top: 100, // Normalde aşağıda
     width: 300,
     height: 300,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  
   arcImage: {
     width: 300,
     height: 300,
@@ -241,7 +281,7 @@ const styles = StyleSheet.create({
     height: 50,
     resizeMode: 'contain',
   },
-  bottomSheetContent: {
+  contentContainer: {
     backgroundColor: '#fff',
     padding: 20,
     height: 300,
@@ -260,19 +300,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  bottomSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    backgroundColor: '#fff',
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-  },
-  contentContainer: {
-    backgroundColor: '#fff',
-    padding: 20,
-    height: 300,
+  insightTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 5,
   },
 });
