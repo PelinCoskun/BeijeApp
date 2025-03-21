@@ -2,7 +2,7 @@ import React, { useRef, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity,Animated } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
-import BottomSheet from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -19,7 +19,7 @@ const CycleScreen = () => {
   const bottomSheetTranslateY = useRef(new Animated.Value(0)).current;
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-  const snapPoints = useMemo(() => ['25%', '50%', '68%'], []);
+  const snapPoints = useMemo(() => ['30%', '68%'], []);
   const [selectedDay, setSelectedDay] = useState<number | null>(1);
 
   const cycleDays = 28;
@@ -199,42 +199,43 @@ const CycleScreen = () => {
           />
         </TouchableOpacity>
 
-        {/* Bottom Sheet */}
-        <BottomSheet
-  ref={bottomSheetRef}
-  index={0} 
-  snapPoints={snapPoints}
-  animateOnMount={true}
-  enableDynamicSizing={false}
-  onChange={handleBottomSheetChange}
->
-  <View style={styles.contentContainer}>
-    <Text style={styles.bottomSheetTitle}>
-      {selectedDay ? `${selectedDay}. Gün` : 'Gün Seçilmedi'}
-    </Text>
-<Text style={{
-      fontWeight: 'bold',
-      marginTop: 20,
-    }}>Bugünkü Öne Çıkanlar</Text>
-    {/* Seçili gün varsa menstrüasyon notlarını göster */}
+
+
+        <BottomSheet ref={bottomSheetRef} index={0} snapPoints={snapPoints} animateOnMount={true} enableDynamicSizing={false} onChange={handleBottomSheetChange}>
+  <BottomSheetScrollView style={styles.contentContainer}>
+    <Text style={styles.bottomSheetTitle}>{selectedDay ? `${selectedDay}. Gün` : 'Gün Seçilmedi'}</Text>
+
+    <Text style={{ fontWeight: 'bold', marginTop: 20 }}>Bugünkü Öne Çıkanlar</Text>
+
     {selectedDay && getMenstruationNoteForDay(selectedDay) && (
       <View>
         <Text>{getMenstruationNoteForDay(selectedDay)}</Text>
       </View>
     )}
 
-    {/* Insights verilerini göster */}
-    <Text style={{ fontWeight: 'bold' }}></Text>
+    {/* Scrollable Insights List */}
     {insights.length > 0 ? (
       insights.map((insight) => (
-        <Text key={insight._id}>{insight.title}</Text>
+        <View key={insight._id} style={styles.insightItem}>
+          <View style={styles.insightRow}>
+            {/* Sol tarafta resim */}
+            <Image source={require('../../assets/images/illustration.png')} style={styles.insightImage} />
+            
+            {/* Insight içeriği */}
+            <View style={styles.insightTextContainer}>
+              <Text style={styles.insightTitle}>{insight.title}</Text>
+              <Text style={styles.insightContent} numberOfLines={2} ellipsizeMode="tail">
+                {insight.content}
+              </Text>
+            </View>
+          </View>
+        </View>
       ))
     ) : (
       <Text>Henüz insight yok.</Text>
     )}
-  </View>
+  </BottomSheetScrollView>
 </BottomSheet>
-
 
         {/* Bottom Bar with Buttons */}
         <View style={styles.bottomBar}>
@@ -345,8 +346,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 20,
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderRadius: 25,
     backgroundColor: '#f7957b',
     justifyContent: 'center',
@@ -367,8 +368,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   notificationImage: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     resizeMode: 'contain',
   },
   contentContainer: {
@@ -387,14 +388,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
-  insightText: {
-    fontSize: 16,
+  insightTitle: {
+    fontSize: 12,
+    color: 'gray',
+    marginBottom: 5,
+  },
+  insightContent: {
+    fontSize: 14,
     color: '#333',
   },
-  insightTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 5,
+  insightImage: {
+    width: 40, // Resmin genişliği
+    height: 40, // Resmin yüksekliği
+    marginRight: 10, // Resim ile yazı arasında boşluk bırak
+  },
+  insightTextContainer: {
+    flex: 1, // Yazı alanının esnek genişlemesini sağlar
+  },
+  insightRow: {
+    flexDirection: 'row', // Resim ve yazıyı yatay hizalar (YAN YANA OLUR)
+    alignItems: 'center', // Dikeyde ortalar
   },
 });
