@@ -7,7 +7,7 @@ import { Provider } from 'react-redux';
 import { store } from './src/redux/store'; // Redux store'unuzun yolu
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// Stack navigatörünün tipini ayarla
+
 type RootStackParamList = {
   Splash: undefined;
   Cycle: undefined;
@@ -17,7 +17,6 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 const App = () => {
   return (
-    // GestureHandlerRootView en dışa alınmalı
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>
         <NavigationContainer>

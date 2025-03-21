@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface InsightsState {
-  data: any; // Veriyi dizi olarak tanımladık
+  data: any; 
 }
 
 const initialState: InsightsState = {
-  data: {}, // Başlangıç durumu: boş dizi
+  data: {}, 
 };
 
 const insightsSlice = createSlice({
@@ -13,7 +13,7 @@ const insightsSlice = createSlice({
   initialState,
   reducers: {
     setInsightsData: (state, action: PayloadAction<any[]>) => {
-      state.data = action.payload; // Veriyi güncelliyoruz
+      state.data = action.payload; 
       console.log("Insights verisi Redux'a eklendi:", action.payload);
     },
   },

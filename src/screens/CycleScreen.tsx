@@ -1,132 +1,177 @@
 import React, { useRef, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity,Animated } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import LinearGradient from 'react-native-linear-gradient';
 
 const CycleScreen = () => {
   const profile = useSelector((state: RootState) => state.profile.data);
   const insights = useSelector((state: RootState) => state.insights.data?.insights || []);
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
+  const menstruationNotes = useSelector((state: RootState) => state.menstruation.menstruationDays || []);
+ 
+  const currentDate = new Date().toLocaleDateString('tr-TR', {
     month: 'long',
     day: 'numeric',
   });
-
+  
+  const bottomSheetTranslateY = useRef(new Animated.Value(0)).current;
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const snapPoints = useMemo(() => ['25%', '50%', '68%'], []);
+  const [selectedDay, setSelectedDay] = useState<number | null>(1);
 
   const cycleDays = 28;
   const bleedingDays = [1, 2, 3, 4];
   const fertilityDays = [13, 14, 15];
   const ovulationDay = 14;
   
+  const dotScale = useRef(new Animated.Value(1)).current;
+
+  const animateDots = (isOpening: boolean) => {
+    Animated.timing(dotScale, {
+      toValue: isOpening ? 1.5 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const renderDots = () => {
-    const dots = [];
-    const radius = 120; // Yayın yarıçapı
-    const centerX = 150; // Yayın merkezi X
-    const centerY = isBottomSheetOpen ? 150 : 150; // Yayın merkezi Y
+    const dots: JSX.Element[] = [];
+    const radius = 120;
+    const centerX = 150;
+    const centerY = 150;
+    const angleStep = isBottomSheetOpen ? 160 / (bleedingDays.length + fertilityDays.length) : 180 / (cycleDays / 2);
+    const arcStartAngle = isBottomSheetOpen ? 200 : 180;
   
-    if (!isBottomSheetOpen) {
-      // Bottom Sheet KAPALIYKEN (Tam Yay, 28 Nokta)
-      const angleStep = 180 / (cycleDays / 2); // 28 noktayı yay boyunca dağıt
-      const arcStartAngle = 180;
+    const bigDays = isBottomSheetOpen ? [...bleedingDays, ...fertilityDays] : Array.from({ length: cycleDays }, (_, i) => i + 1);
   
-      for (let i = 0; i < cycleDays; i++) {
-        const angle = arcStartAngle + i * angleStep;
-        const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
-        const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
+    bigDays.forEach((day, index) => {
+      const angle = arcStartAngle + index * angleStep;
+      const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
+      const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
   
-        let backgroundColor = '#ccc'; // Varsayılan gri renk
-        let size = 20; // Küçük noktalar
+      let backgroundColor = '#ccc';
+      let size = isBottomSheetOpen ? 30 : 20;
+      let borderWidth = 0;
+      let borderColor = 'transparent';
   
-        if (bleedingDays.includes(i + 1)) {
-          backgroundColor = '#f7957b';
-        } else if (i + 1 === ovulationDay) {
-          backgroundColor = '#388e3c';
-        }
-  
-        dots.push(
-          <View
-            key={i}
-            style={{
-              position: 'absolute',
-              backgroundColor,
-              left: x - size / 2,
-              top: y - size / 2,
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-            }}
-          />
-        );
+      if (bleedingDays.includes(day)) {
+        backgroundColor = '#f7957b';
+      } else if (fertilityDays.includes(day)) {
+        backgroundColor = '#a8e6cf';
       }
-    } else {
-      // Bottom Sheet AÇIKKEN (Yarım Yay, 7 Büyük Nokta)
-      const bigDays = [...bleedingDays, ...fertilityDays];
-      const uniqueBigDays = Array.from(new Set(bigDays)).sort((a, b) => a - b);
+      if (day === ovulationDay) {
+        backgroundColor = '#388e3c';
+      }
+  
+     
+      if (selectedDay === day) {
+        size = 35;
+        borderWidth = 4; 
+        borderColor = '#cdcfd1'; 
+      }
+  
+      dots.push(
+        <TouchableOpacity
+          key={day}
+          onPress={() => handleDotPress(day)}
+          activeOpacity={0.7}
+          style={{
+            position: 'absolute',
+            left: x - size / 2,
+            top: y - size / 2,
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth,
+            borderColor,
+          }}
+        >
+          
+          {selectedDay === day && (
+            <View style={{
+              width: size / 2,
+              height: size / 2,
+              borderRadius: size / 4,
+              backgroundColor: '#cdcfd1',
+            }} />
+          )}
+        </TouchableOpacity>
+      );
+    });
+  
     
-      const totalArcAngle = 140; // 180 yerine daha dar açı
-      const angleStep = totalArcAngle / (uniqueBigDays.length - 1);
-      const arcStartAngle = 200; // 180'den biraz kaydırdık
-    
-      uniqueBigDays.forEach((day, index) => {
-        const angle = arcStartAngle + index * angleStep;
-        const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
-        const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
-    
-        let backgroundColor = '#ccc';
-        let size = 30;
-    
-        if (bleedingDays.includes(day)) {
-          backgroundColor = '#f7957b';
-        } else if (fertilityDays.includes(day)) {
-          backgroundColor = '#a8e6cf';
-        }
-        if (day === ovulationDay) {
-          backgroundColor = '#388e3c';
-        }
-    
-        dots.push(
-          <View
-            key={day}
-            style={{
-              position: 'absolute',
-              backgroundColor,
-              left: x - size / 2,
-              top: y - size / 2,
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-            }}
-          />
-        );
-      });
+    if (!isBottomSheetOpen && selectedDay) {
+      dots.push(
+        <Text
+          key="selectedDayText"
+          style={{
+            position: 'absolute',
+            top: centerY - 10,
+            left: centerX - 20,
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: '#333',
+          }}
+        >
+          {`${selectedDay}. Gün`}
+        </Text>
+      );
     }
-    
   
     return dots;
   };
   
+  
 
+  const animateBottomSheet = (index: number) => {
+    Animated.timing(bottomSheetTranslateY, {
+      toValue: index > 0 ? -100 : 0, 
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
   
   const handleBottomSheetChange = (index: number) => {
-    if (index > 0) {
-      setIsBottomSheetOpen(true); 
-    } else {
-      setIsBottomSheetOpen(false); 
-    }
+    setIsBottomSheetOpen(index > 0);
+    animateBottomSheet(index);
   };
 
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0]; 
+  };
+  
+  const handleDotPress = (day: number) => {
+    setSelectedDay(day);
+    bottomSheetRef.current?.expand();
+  };
+  
+  
+  const getMenstruationNoteForDay = (day: number) => {
+    const today = new Date();
+    today.setDate(day);
+    const formattedDate = formatDate(today);
+  
+    const dayData = menstruationNotes.find((entry) => entry.date === formattedDate);
+    return dayData ? dayData.note : null;
+  };
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+        <LinearGradient colors={['#fcebe4', '#ffffff']} style={styles.gradientBackground}>
       <View style={styles.container}>
         {/* Current date */}
         <View style={styles.dateContainer}>
-          <Text style={styles.dateText}>{currentDate}</Text>
-        </View>
+  <Text style={styles.dateText}>
+    {`${currentDate} `}
+    <Text style={{ fontWeight: 'normal' }}>Bugün</Text>
+  </Text>
+</View>
 
         {/* Arc or Main Circle image */}
         <View style={[styles.arcContainer, isBottomSheetOpen && { top: 100 }]}>
@@ -156,27 +201,40 @@ const CycleScreen = () => {
 
         {/* Bottom Sheet */}
         <BottomSheet
-          ref={bottomSheetRef}
-          index={0} // Initially closed
-          snapPoints={snapPoints}
-          animateOnMount={true}
-          enableDynamicSizing={false}
-          onChange={handleBottomSheetChange}
-        >
-          <View style={styles.contentContainer}>
-            <Text style={styles.bottomSheetTitle}>Insights</Text>
-            {insights && insights.length > 0 ? (
-              insights.map((insight) => (
-                <View key={insight._id} style={styles.insightItem}>
-                  <Text style={styles.insightTitle}>{insight.title}</Text>
-                  <Text style={styles.insightText}>{insight.content}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.insightText}>No insights available.</Text>
-            )}
-          </View>
-        </BottomSheet>
+  ref={bottomSheetRef}
+  index={0} 
+  snapPoints={snapPoints}
+  animateOnMount={true}
+  enableDynamicSizing={false}
+  onChange={handleBottomSheetChange}
+>
+  <View style={styles.contentContainer}>
+    <Text style={styles.bottomSheetTitle}>
+      {selectedDay ? `${selectedDay}. Gün` : 'Gün Seçilmedi'}
+    </Text>
+<Text style={{
+      fontWeight: 'bold',
+      marginTop: 20,
+    }}>Bugünkü Öne Çıkanlar</Text>
+    {/* Seçili gün varsa menstrüasyon notlarını göster */}
+    {selectedDay && getMenstruationNoteForDay(selectedDay) && (
+      <View>
+        <Text>{getMenstruationNoteForDay(selectedDay)}</Text>
+      </View>
+    )}
+
+    {/* Insights verilerini göster */}
+    <Text style={{ fontWeight: 'bold' }}></Text>
+    {insights.length > 0 ? (
+      insights.map((insight) => (
+        <Text key={insight._id}>{insight.title}</Text>
+      ))
+    ) : (
+      <Text>Henüz insight yok.</Text>
+    )}
+  </View>
+</BottomSheet>
+
 
         {/* Bottom Bar with Buttons */}
         <View style={styles.bottomBar}>
@@ -210,6 +268,7 @@ const CycleScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+      </LinearGradient>
     </GestureHandlerRootView>
   );
 };
@@ -220,12 +279,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
     alignItems: 'center',
+    backgroundColor: 'linear-gradient(180deg, #fcebe4, #ffffff)',
   },
+  gradientBackground: {
+    flex: 1, 
+  },
+  
   dateContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 30,
   },
   bottomBar: {
     position: 'absolute',
@@ -260,7 +323,7 @@ const styles = StyleSheet.create({
   },
   arcContainer: {
     position: 'absolute',
-    top: 100, // Normalde aşağıda
+    top: 100, 
     width: 300,
     height: 300,
     justifyContent: 'center',
@@ -317,6 +380,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   insightItem: {
     padding: 10,

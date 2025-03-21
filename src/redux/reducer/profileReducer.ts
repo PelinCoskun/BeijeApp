@@ -2,11 +2,11 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 
 interface ProfileState {
-  data: any; // Profil verisini nesne olarak tanımladık
+  data: any; 
 }
 
 const initialState: ProfileState = {
-  data: {}, // Başlangıç durumu: boş nesne
+  data: {}, 
 };
 
 const profileSlice = createSlice({
@@ -14,8 +14,8 @@ const profileSlice = createSlice({
   initialState,
   reducers: {
     setProfileData: (state, action: PayloadAction<any>) => {
-      state.data = action.payload; // Veriyi güncelliyoruz
-      console.log("Profile verisi Redux'a eklendi:", action.payload); // Veriyi logla
+      state.data = action.payload; 
+      console.log("Profile verisi Redux'a eklendi:", action.payload); 
     },
   },
 });

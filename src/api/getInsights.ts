@@ -26,13 +26,3 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
         return { data: null, error: 'Error fetching inside data: ' + (error.response?.data?.message || error.message) };
     }
     }
-// import apiClient from './baseApi';
-// export const getInsightsData = async () => {
-//     try {
-//       const response = await apiClient.get('/insights');
-//       return response.data;
-//     } catch (error) {
-//       console.error('Get Profile Error:', error.response || error.message);
-//       throw error;
-//     }
-//   };

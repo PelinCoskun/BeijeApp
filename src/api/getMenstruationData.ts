@@ -27,13 +27,3 @@ export const getMenstruationDays = async () => {
         return { data: null, error: 'Error fetching menstruation data: ' + (error.response?.data?.message || error.message) };
     }
     }
-// import apiClient from './baseApi';
-// export const getMenstruationData = async () => {
-//     try {
-//       const response = await apiClient.get('/menstruation-days');
-//       return response.data;
-//     } catch (error) {
-//       console.error('Get Profile Error:', error.response || error.message);
-//       throw error;
-//     }
-//   };

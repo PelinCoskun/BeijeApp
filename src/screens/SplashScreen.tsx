@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../../../App';
@@ -7,21 +8,24 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { setProfileData } from '../redux/reducer/profileReducer';
 import { setInsightsData } from '../redux/reducer/insightsReducer';
-import { setMenstruationData } from '../redux/reducer/menstruationReducer'; // Eksik import
+import { setMenstruationData } from '../redux/reducer/menstruationReducer';
 import signIn from '../api/signInRequest';
 import { getProfileData } from '../api/getProfile';
 import { getInsightsData } from '../api/getInsights';
 import { getMenstruationDays } from '../api/getMenstruationData';
 
-
 const SplashScreen = () => {
   const [animationCount, setAnimationCount] = useState(0);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const animationRef = useRef<LottieView>(null);
   const dispatch = useDispatch();
 
   const onAnimationFinish = () => {
-    setAnimationCount((prevCount) => prevCount + 1);
+    setAnimationCount((prev) => prev + 1);
+    if (animationCount + 1 < 3) {
+      animationRef.current?.play();
+    }
   };
 
   const checkToken = async () => {
@@ -32,12 +36,8 @@ const SplashScreen = () => {
         await signIn();
       }
 
-      // Verileri Redux'a kaydet
       await fetchProfile();
       await fetchData();
-
-      // Cycle ekranına yönlendir
-      navigation.navigate('Cycle');
     } catch (error) {
       console.error('Token kontrolü sırasında hata oluştu:', error);
     }
@@ -49,7 +49,7 @@ const SplashScreen = () => {
 
       if (data) {
         dispatch(setProfileData(data));
-        console.log("Profile verisi Redux'a eklendi:", data);
+        console.log('Profile verisi Redux\'a eklendi:', data);
       }
 
       if (error) {
@@ -63,33 +63,38 @@ const SplashScreen = () => {
   const fetchData = async () => {
     try {
       const insightsResponse = await getInsightsData();
-      console.log('Insights API Response:', insightsResponse);
+      const menstruationResponse = await getMenstruationDays();
 
       if (insightsResponse.data) {
         dispatch(setInsightsData(insightsResponse.data));
       }
 
-      const menstruationResponse = await getMenstruationDays();
-      console.log('Menstruation API Response:', menstruationResponse);
-
       if (menstruationResponse.data) {
         dispatch(setMenstruationData(menstruationResponse.data));
       }
+
+      setDataLoaded(true);
     } catch (error) {
       console.error('Veri alınırken hata oluştu:', error);
     }
   };
 
   useEffect(() => {
-    if (animationCount < 3) {
-      animationRef.current?.play();
-    } else {
-      checkToken();
+    animationRef.current?.play();
+    checkToken();
+  }, []);
+
+  useEffect(() => {
+    if (dataLoaded && animationCount >= 3) {
+      navigation.navigate('Cycle');
     }
-  }, [animationCount, navigation]);
+  }, [dataLoaded, animationCount]);
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={['#fcebe4', '#f8d7c4']}
+      style={styles.container}
+    >
       <View style={styles.animationContainer}>
         <LottieView
           ref={animationRef}
@@ -107,7 +112,7 @@ const SplashScreen = () => {
           style={styles.logo}
         />
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -116,7 +121,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   animationContainer: {
     flex: 1,
