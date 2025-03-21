@@ -20,70 +20,97 @@ const CycleScreen = () => {
 
   const cycleDays = 28;
   const bleedingDays = [1, 2, 3, 4];
-  const fertilityDays = [12, 13, 14, 15];
+  const fertilityDays = [13, 14, 15];
   const ovulationDay = 14;
   
   const renderDots = () => {
     const dots = [];
-    const radius = 120; // Arc radius
-    const centerX = 150; // Arc center X
-    const centerY = isBottomSheetOpen ? 140 : 150; // Arc center Y, BottomSheet açıkken yukarı kaydır
-    
-    const angleStep = 180 / (cycleDays / 2); // Half arc, so we divide by half of the total days
-    const arcStartAngle = 180; // Start angle for half arc (bottom half)
+    const radius = 120; // Yayın yarıçapı
+    const centerX = 150; // Yayın merkezi X
+    const centerY = isBottomSheetOpen ? 150 : 150; // Yayın merkezi Y
   
-    for (let i = 0; i < cycleDays; i++) {
-      // Adjust angle to fit the bottom half of the circle
-      const angle = arcStartAngle + (i * angleStep);
-      const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
-      const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
+    if (!isBottomSheetOpen) {
+      // Bottom Sheet KAPALIYKEN (Tam Yay, 28 Nokta)
+      const angleStep = 180 / (cycleDays / 2); // 28 noktayı yay boyunca dağıt
+      const arcStartAngle = 180;
   
-      let backgroundColor = '#ccc'; // Default gray color
-      let size = isBottomSheetOpen ? 10 : 20; // Default dot size
+      for (let i = 0; i < cycleDays; i++) {
+        const angle = arcStartAngle + i * angleStep;
+        const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
+        const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
   
-      if (!isBottomSheetOpen) {
+        let backgroundColor = '#ccc'; // Varsayılan gri renk
+        let size = 20; // Küçük noktalar
+  
         if (bleedingDays.includes(i + 1)) {
           backgroundColor = '#f7957b';
         } else if (i + 1 === ovulationDay) {
           backgroundColor = '#388e3c';
         }
-        size = 20;
-      } else {
-        if (bleedingDays.includes(i + 1)) {
-          backgroundColor = '#f7957b';
-          size = 35;
-        } else if (fertilityDays.includes(i + 1)) {
-          backgroundColor = '#a8e6cf';
-          size = 35;
-        }
-        if (i + 1 === ovulationDay) {
-          backgroundColor = '#388e3c';
-          size = 35;
-        }
-      }
   
-      const isDotVisible =
-        !isBottomSheetOpen || bleedingDays.includes(i + 1) || i + 1 === ovulationDay || fertilityDays.includes(i + 1);
-  
-      if (isDotVisible) {
         dots.push(
           <View
             key={i}
-            style={[styles.dot, { 
-              backgroundColor, 
-              left: x - size / 2, 
-              top: y - size / 2, 
-              width: size, 
+            style={{
+              position: 'absolute',
+              backgroundColor,
+              left: x - size / 2,
+              top: y - size / 2,
+              width: size,
               height: size,
-              borderRadius: size / 2 
-            }]}
+              borderRadius: size / 2,
+            }}
           />
         );
       }
+    } else {
+      // Bottom Sheet AÇIKKEN (Yarım Yay, 7 Büyük Nokta)
+      const bigDays = [...bleedingDays, ...fertilityDays];
+      const uniqueBigDays = Array.from(new Set(bigDays)).sort((a, b) => a - b);
+    
+      const totalArcAngle = 140; // 180 yerine daha dar açı
+      const angleStep = totalArcAngle / (uniqueBigDays.length - 1);
+      const arcStartAngle = 200; // 180'den biraz kaydırdık
+    
+      uniqueBigDays.forEach((day, index) => {
+        const angle = arcStartAngle + index * angleStep;
+        const x = centerX + radius * Math.cos((angle * Math.PI) / 180);
+        const y = centerY + radius * Math.sin((angle * Math.PI) / 180);
+    
+        let backgroundColor = '#ccc';
+        let size = 30;
+    
+        if (bleedingDays.includes(day)) {
+          backgroundColor = '#f7957b';
+        } else if (fertilityDays.includes(day)) {
+          backgroundColor = '#a8e6cf';
+        }
+        if (day === ovulationDay) {
+          backgroundColor = '#388e3c';
+        }
+    
+        dots.push(
+          <View
+            key={day}
+            style={{
+              position: 'absolute',
+              backgroundColor,
+              left: x - size / 2,
+              top: y - size / 2,
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+            }}
+          />
+        );
+      });
     }
+    
   
     return dots;
   };
+  
+
   
   const handleBottomSheetChange = (index: number) => {
     if (index > 0) {
